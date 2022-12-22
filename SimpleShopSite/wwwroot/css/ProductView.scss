@@ -1,0 +1,18 @@
+﻿
+$imageSize:400px;
+
+@mixin put_size($size)
+{
+    width:$size;
+    height:$size
+}
+
+.img-obj {
+    @include put_size($imageSize)
+}
+
+.image-slider-disp {
+    @include put_size($imageSize);
+    background-color:black;
+    padding:0
+}

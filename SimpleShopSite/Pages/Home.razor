@@ -1,0 +1,24 @@
+﻿@page "/home"
+@inject IJSRuntime Js
+
+<link rel="stylesheet" href=/_framework/home/index.min.css/>
+<div id="root"></div> @*עמוד הבית*@
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                ReactConnectorForHome react = new ReactConnectorForHome(Js);
+                await react.Run(); // תקשורת בין ריאקט לבלזור
+                //var f = await Js.InvokeAsync<object>("import", "./_framework/index.min.css");
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+    }
+}

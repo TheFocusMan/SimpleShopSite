@@ -1,0 +1,249 @@
+﻿@page "/upload"
+@using Microsoft.AspNetCore.Identity
+@using SexyWebSite.Data
+@using System.Linq.Expressions
+@using System.ComponentModel.DataAnnotations
+
+@inherits ToolTipPageHub
+@implements IAsyncDisposable
+
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider UserState
+@inject NavigationManager NavManage
+@inject ImageCreator ImgCtreate
+
+<PageTitle>Upload Product</PageTitle>
+
+<h3>UploadProduct</h3>
+<EditForm Model="productModel" OnValidSubmit="UploadProductClick">
+    <div class="row">
+        <div class="col-md-4">
+            <ValidationSummary />
+            <DataAnnotationsValidator />
+            <div class="form-floating">
+                <InputText @bind-Value="@productModel.ProductName" class="form-control" />
+                <label>Product Name</label>
+                <ValidationMessage For="@(() => productModel.ProductName)"></ValidationMessage>
+            </div>
+
+            <div class="form-floating">
+                <InputTextArea @bind-Value="productModel.ProductDescription"  class="form-control" />
+                <label>Product Description</label>
+                <ValidationMessage For="@(() => productModel.ProductDescription)"></ValidationMessage>
+            </div>
+
+            <div class="form-floating">
+                <InputNumber min="0"  class="form-control" ParsingErrorMessage="Invalid input" DisplayName="The input is on שקלים"  @bind-Value="@productModel.ProductPrice"/>
+                <label>Product Price</label>
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+
+        <div class="col-md-6 col-md-offset-2">
+            <img src="@_url" style="width:400px;height:400px;background-color:lightgray;border-radius:20px"/>
+            <div class="row" style="padding-left:10px">
+                @{
+                    @foreach (var image in _imageStreams)
+                    {
+                        int index = _imageStreams.IndexOf(image) + 1;
+
+                        string classname = image.Url != null ? "g-0 justify-content-end bntupload" : "g-0 align-content-center justify-content-center bntuploadnone";
+                        string style = image.Url != null ? $"background-image:url({image.Url})" : "";
+                        string idtxt = $"file-{index}"; // id set
+                        <div class="col-auto text-center row @classname" @key="image"
+                            style="@style">
+                            @CreateDynamicFileInput(idtxt,image)
+                            @if (image.Url is null) // null image
+                            {
+                                // file input
+                                <label class="oi oi-data-transfer-upload" for="@idtxt" style="width:80px;font-size:24px;color:deepskyblue"></label>
+                                <label for="@idtxt" class="bntnulltextimage">Click to Upload Image</label>
+                            }
+                            else // put image
+                            {
+                                string classNameForSelect = _url == image.Url ? "oi-check bntedit-true" : "oi-eject bntedit";
+
+                                <div class="row panelSpechial g-0 justify-content-end" @ondblclick="(e) => SelectImage(image)">
+                                    <div class="panelSpechial-child">
+                                        <button type="button" class="bntedit-false oi oi-x d-inline-block" data-bs-toggle="tooltip" title="Remove the image"  data-bs-placement="top"
+                                            @onclick="async (e) => await RemoveImage(image)"></button>
+                                        <label class="oi oi-pencil bntedit d-inline-block" data-bs-toggle="tooltip"  data-bs-placement="top" title="Change the image" for="@idtxt" style="padding-top:3px;top:0"></label>
+                                        <button type="button" data-bs-toggle="tooltip"  data-bs-placement="top" title="Set to primary image" class="oi @classNameForSelect d-inline-block" @onclick="(e) => SelectImage(image)"></button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+            </div>
+            <span class="text-danger">@_errorcontent</span>
+            <ValidationMessage For="@(() => productModel.PrimaryImageIndex)"></ValidationMessage>
+        </div>
+    </div>
+</EditForm>
+@functions {
+    RenderFragment CreateDynamicFileInput(string idtxt,ProductImage image) => builder =>
+    {
+        builder.OpenComponent<InputFile>(0);
+        builder.AddAttribute(1, "accept", "image/*");
+        builder.AddAttribute(2, "class", "inputFileNub");
+        builder.AddAttribute(3, "id", idtxt);
+        builder.AddAttribute(4, "OnChange", EventCallback.Factory.Create(this, async delegate (InputFileChangeEventArgs e)
+        {
+            await OnChangeImage(image, e);
+        }));
+        builder.CloseComponent();
+    };
+}
+@code {
+    private string _errorcontent = "";
+    private string? _url = "./images/noImage.png";
+    List<ProductImage> _imageStreams = new(4) {new(),new() ,new(),new()};
+
+    private async ValueTask DisposeImage(ProductImage item)
+    {
+        if (item is not null && item.Stream != null)
+        {
+            item.Stream.Dispose();
+            await ImgCtreate.DisposeUrl(item.Url is null ? default! : item.Url);
+            item.Stream = null;
+            item.Url = null; // לשימוש חוזר
+            item.File = null;
+        }
+    }
+
+    public override async ValueTask DisposeAsync()
+    {
+        foreach (var item in _imageStreams) 
+            await DisposeImage(item);
+        //await ImgCtreate.DisposeAsync();
+        UserManager.Dispose();
+
+        await base.DisposeAsync();
+    }
+
+    private void SelectImage(ProductImage image)
+    {
+        _url = image.Url;
+        productModel.PrimaryImageIndex = _imageStreams.IndexOf(image);
+    }
+
+    private async Task UploadProductClick(EditContext e)
+    {
+        // שמירת נתונים במסד הנתונים וחזרה לדף הבית
+        var auto = await UserState.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(auto.User);
+        var product = new Product()
+            {
+                Name = productModel.ProductName,
+                Description = productModel.ProductDescription,
+                ReleaseDate = DateTime.Now,
+                Price = productModel.ProductPrice.GetValueOrDefault(),
+                MainImageIndex = productModel.PrimaryImageIndex.GetValueOrDefault(),
+                UserOwner = user,
+                Images = await _imageStreams.ToAsyncEnumerable()
+                        .Where(x => x.Stream is not null)
+                        .SelectAwait(async x =>
+                        {
+                            if (x.File is not null)
+                            {
+                                x.Stream?.Dispose();
+                                using (var stream = x.File.OpenReadStream(x.File.Size))
+                                using (var mem = new MemoryStream())
+                                {
+                                    await stream.CopyToAsync(mem);
+                                    return new Data.Image() { ImageData = mem.ToArray() };
+                                }
+                            }
+                            return new Data.Image();
+                        }).ToListAsync()
+        };
+        product.Images.ForEach(x => x.Product = product);
+        user.Products.Add(product);
+        await UserManager.UpdateAsync(user);
+        NavManage.NavigateTo("./", true);
+    }
+
+    private async ValueTask OnChangeImage(ProductImage iamge, InputFileChangeEventArgs e)
+    {
+        try
+        {
+            using var stream0 = e.File.OpenReadStream(e.File.Size);
+            try
+            {
+                if (e.File.ContentType == "image/gif") 
+                    throw new UnknownImageFormatException("");
+                using (var image = await SixLabors.ImageSharp.Image.LoadAsync(stream0)) // קריאת התמונה והשגת סוגה
+                {
+                    var bounds = image.Bounds();
+                    if (bounds.Width > 800 || bounds.Height > 800)
+                        throw new Exception("Image size cannot be over 800x800");
+                    if (bounds.Width != bounds.Height)
+                        throw new Exception("The image should be square");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (ex is UnknownImageFormatException)
+                    _errorcontent = "* Unsupported file";
+                else _errorcontent = $"* {ex.Message}";
+                stream0.Dispose();
+                return;
+            }
+        }
+        finally
+        {
+
+        }
+        await RemoveImage(iamge);
+
+        var stream = new DotNetStreamReference(e.File.OpenReadStream(e.File.Size)); // image stream
+                                                                                    // not add finaly 
+        iamge.File = e.File;
+        iamge.Stream = stream; // set Data
+        iamge.Url = await ImgCtreate.CreateUrlFromStream(stream);
+        // reset
+        _errorcontent = "";
+    }
+
+    private async Task RemoveImage(ProductImage image)
+    {
+        if (image.Url is not null)
+        {
+            if (image.Url == _url)
+                _url = "./images/noImage.png"; // להחזיר לברירת מחדל
+
+            if (_imageStreams.IndexOf(image) == productModel.PrimaryImageIndex)
+                productModel.PrimaryImageIndex = null;  // להחזיר לברירת מחדל
+            await DisposeImage(image);// למנוע בעיות זיכרון
+        }
+    }
+
+    private ProductModel productModel = new();
+
+    // מחלקה עוזרת
+    class ProductImage
+    {
+        public DotNetStreamReference? Stream { get; set; }
+        public IBrowserFile? File { get; set; }
+        public string? Url { get; set; }
+    }
+    // מודל למוצר
+    class ProductModel
+    {
+        [Required(ErrorMessage = "Need product name")]
+        [StringLength(50,ErrorMessage = "The Name must be at least {2} and at max {1} characters long.",MinimumLength = 5)]
+        public string? ProductName { get; set; }
+
+        [Required(ErrorMessage ="Need to enter a description")]
+        [MaxLength(500,ErrorMessage = "The Description is too long max lenght {1}")]
+        public string? ProductDescription { get; set; }
+
+        [Required(ErrorMessage = "You did not enter a price")]
+        [Range(0,10000,ErrorMessage ="The Maximum price is {2}")]
+        public decimal? ProductPrice { get; set; } = null;
+
+        [Required(ErrorMessage = "No primary image selected!")]
+        public int? PrimaryImageIndex { get; set; } = null;
+    }
+}

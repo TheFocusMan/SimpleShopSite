@@ -1,0 +1,39 @@
+﻿@inherits LayoutComponentBase
+@inject IJSRuntime Js
+@inject NavigationManager NavManager
+@inject IWebHostEnvironment Environment
+
+<PageTitle>SexyWebSite</PageTitle>
+
+
+@if (Environment.IsDevelopment())
+{
+    <link rel="stylesheet" href="css/DisplayHelpers.css"/>
+}
+else
+{
+    <link rel="stylesheet" href="css/DisplayHelpers.min.css"/>
+}
+
+@if (NavManager.ToAbsoluteUri(NavManager.Uri).AbsolutePath != "/home")
+{
+    <div class="page">
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+
+        <main>
+            <div class="top-row px-4 auth">
+                <LoginDisplay />
+                <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            </div>
+
+            <article class="content px-4">
+                @Body
+            </article>
+        </main>
+    </div>
+} else
+{
+    @Body
+}

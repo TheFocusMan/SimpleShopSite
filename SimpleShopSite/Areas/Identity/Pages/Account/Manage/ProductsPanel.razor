@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using SexyWebSite.Data
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<ApplicationUser> UserManager
+
+@if (_user != null)
+{
+    @if (_user.Products.Any())
+    {
+
+    }
+    else
+    {
+        <p class="text-center" style="font-size:20px" @ref="_ref">No Products</p>
+    }
+}
+
+@code {
+    private ApplicationUser? _user;
+    ElementReference _ref;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = await GetUser();
+    }
+
+    private async Task<ApplicationUser> GetUser()
+    {
+        var state = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return await UserManager.Users
+            .Include(x => x.Products)
+            .ThenInclude(x => x.Images)
+            .SingleAsync(x => x.Id == UserManager.GetUserId(state.User));
+    }
+}

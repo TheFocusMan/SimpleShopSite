@@ -1,0 +1,83 @@
+﻿// שלום זהו הקובץ למטרת העלעת מוצר
+@import "PanelSpecial.scss";
+
+$green-color: #2ecc71;
+$blue-color: #3498db;
+$red-color: #e74c3c;
+
+.bntuploadnone {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    background-color: whitesmoke;
+
+    .bntnulltextimage {
+        font-size: 10px;
+        opacity: 0;
+    }
+
+    &:hover {
+        background-color: lightgray;
+        transition: ease-in-out 0.3s;
+    }
+
+    &:active {
+        background-color: #bababa;
+        transition: ease-in-out 0.3s;
+    }
+
+    &:hover .bntnulltextimage {
+        opacity: 1;
+        font-size: 12px;
+        transition: ease-in-out 0.3s
+    }
+}
+
+
+.bntupload {
+    width: 100px;
+    height: 100px;
+    border-radius: 20px;
+    background-size: 100px;
+
+    &:hover {
+        -webkit-backdrop-filter: brightness(85%);
+        backdrop-filter: brightness(85%);
+        transition: ease-in-out 0.3s
+    }
+}
+
+@mixin button-filled($color) {
+    background-color: $color;
+
+    &:hover {
+        background-color: darken($color, 10);
+    }
+
+    &:active {
+        background-color: darken($color, 20);
+    }
+}
+
+@mixin bntedit-pre($color) {
+    border: 1px solid white;
+    border-radius: 5px;
+    color: white;
+    width: 25px;
+    height: 25px;
+    font-size: 14px;
+    padding: 0;
+    @include button-filled($color)
+}
+
+.bntedit {
+    @include bntedit-pre($blue-color)
+}
+
+.bntedit-true {
+    @include bntedit-pre($green-color)
+}
+
+.bntedit-false {
+    @include bntedit-pre($red-color)
+}

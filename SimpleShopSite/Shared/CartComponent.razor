@@ -1,0 +1,130 @@
+﻿@using SexyWebSite.Data
+
+@inherits ToolTipPageHub
+
+@inject AuthenticationStateProvider UserState
+@inject UserManager<ApplicationUser> UserManager
+@inject ImageCreator ImgCreator
+
+<section class="body-content">
+    @*מה זה פופ אובר*@
+    <div hidden>
+        <div data-html-cs-name="cartpopover" data-is-clone="false">
+            @foreach (var item in PrductsDisp)@*השגת מוצרים*@
+            {
+                <div class="card mb-3" @key="item">
+                    <div class="row g-0 flex-nowrap">
+                        <div class="col-4">
+                            <img class="img-fluid rounded-start" style="object-fit:cover" src="@item.ImageUrl"/>
+                        </div>
+                        <div class="col-8">
+                            <div class="card-body">
+                                <h5 class="card-title">@item.Product.Name</h5>
+                                <label class="disp-by unselectable">Date Added @_user.ProductsOnCart[this.PrductsDisp.IndexOf(item)].AddedDay</label>
+                                <br/>
+                                <label class="disp-by unselectable">by @item.Product.UserOwner.UserName</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="panelSpechial-no-clip row g-0 justify-content-end" style="border-radius:0;position:absolute;width:100%;height:100%">
+                        <div class="panelSpechial-child">
+                            <button type="button" class="bntedit-false oi oi-trash d-inline-block" 
+                            data-bs-toggle="tooltip" title="Remove from cart" 
+                            data-bs-placement="top" onclick="DotNet.invokeMethodAsync('SexyWebSite','RemoveBuy',@this.PrductsDisp.IndexOf(item))"></button>
+                         </div>
+                    </div>
+                </div>
+            }
+            <button type="button" class="btn btn-primary">Check Out</button>
+        </div>
+    </div>
+
+    <button data-html-name-target="cartpopover" class="btn btn-primary" type="button" title="Dismissible popover" data-bs-toggle="popover" @onclick="OnFirstShow">
+        <span class="oi oi-cart"/> Cart
+    </button>
+</section>
+
+@code {
+    private ApplicationUser _user = default!;
+    private List<Product> SelectedProducts = new();
+    private List<ProductDisplay> PrductsDisp = new();
+
+    private static CartComponent _component = default!;
+
+    private bool __flag = false;
+
+    private void OnFirstShow(MouseEventArgs e)
+    {
+        if (_user is null) 
+            base.StateHasChanged(); // ריענון בפתיחה
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (__flag)
+        {
+            await UpdatePopOvers();
+            __flag = false;
+        }
+        if (!firstRender && _user is null)
+        {
+            try
+            {
+                var Auto = await UserState.GetAuthenticationStateAsync();
+                var id = UserManager.GetUserId(Auto.User);
+
+                _user = await UserManager.Users
+                    .Include(x => x.ProductsOnCart)
+                    .SingleAsync(x => x.Id == id); // השגת המשתמש
+
+                var cart = _user.ProductsOnCart
+                    .Select(x => x.UserId)
+                    .ToList(); // השגת מערך של מוצרים בסל
+
+                var cart1 = _user.ProductsOnCart
+                    .Select(x => x.ProductId)
+                    .ToList(); // השגת מערך של מוצרים בסל
+
+
+                SelectedProducts = await UserManager.Users
+                    .Where(x => cart.Contains(x.Id)) // סינון משתמשים
+                    .Include(x => x.Products)
+                    .ThenInclude(x => x.Images)
+                    .SelectMany(x => x.Products)
+                    .Where(x => cart1.Contains(x.ProductId)) // סינון מוצרים;
+                    .ToListAsync();
+
+                foreach (var item in SelectedProducts)
+                {
+                    PrductsDisp.Add(await ProductDisplay.CreateDisplayAsync(item, ImgCreator));
+                }
+
+                __flag = true; // remove bug
+                _component = this;
+                await UpdatePopOvers();
+            }
+            catch (Exception)
+            {
+
+            }
+        }
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    private async Task RemoveFromCart(int index)
+    {
+        // הסרת מוצר מהסל
+        ProductDisplay product = PrductsDisp[index];
+        _user.ProductsOnCart.RemoveAll(x => x.UserId == product.Product.UserOwner.Id && x.ProductId == product.Product.ProductId);
+        await UserManager.UpdateAsync(_user);
+        PrductsDisp.RemoveAt(index);
+        __flag = true;
+        base.StateHasChanged();
+    }
+
+    [JSInvokable("RemoveBuy")]
+    public static async Task RemoveFromCartStatic(int value)
+    {
+        await _component.RemoveFromCart(value);
+    }
+}

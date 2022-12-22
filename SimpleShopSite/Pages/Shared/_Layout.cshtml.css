@@ -1,0 +1,5 @@
+﻿.vertical-center {
+    margin-top: 50vh;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}

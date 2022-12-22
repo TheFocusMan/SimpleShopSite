@@ -1,0 +1,47 @@
+﻿@inherits ComponentAttributeSetable
+@implements IAsyncDisposable
+@inject IJSRuntime Js
+
+<div @attributes="CapturedAttributes" style="display:@DisplayButtons">
+        <h4 class="mb-2">Payment Method</h4>
+        <div id="smart-button-container">
+            <input type="hidden" name="descriptionInput" id="description" @bind="PaymentDescription" />
+            <input name="amountInput" type="hidden" id="amount" @bind="PaymentAmount">
+            <div style="text-align: center; margin-top: 0.625rem;" id="paypal-button-container"></div>
+        </div>
+</div>
+@code {
+    [Parameter]
+    public string PaymentDescription { get; set; }
+
+    [Parameter]
+    public decimal PaymentAmount { get; set; }
+
+    [Parameter]
+    public string DisplayButtons { get; set; } = "block";
+
+    private IJSObjectReference? _paypalModule;
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                _paypalModule = await Js.InvokeAsync<IJSObjectReference>("import", "./_content/Plugins/ServicePaypal.js");
+                await _paypalModule.InvokeVoidAsync("initPaypalForm");
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_paypalModule != null)
+            await _paypalModule.DisposeAsync();
+    }
+}

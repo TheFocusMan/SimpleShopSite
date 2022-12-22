@@ -1,0 +1,14 @@
+[
+  {
+    "outputFile": "wwwroot/css/ProductView.css",
+    "inputFile": "wwwroot/css/ProductView.scss",
+    "sourceMap": false,
+    "useNodeSass": false
+  },
+  {
+    "outputFile": "wwwroot/css/DisplayHelpers.css",
+    "inputFile": "wwwroot/css/DisplayHelpers.scss",
+    "sourceMap": false,
+    "useNodeSass": false
+  }
+]

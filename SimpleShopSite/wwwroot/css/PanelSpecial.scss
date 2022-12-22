@@ -1,0 +1,29 @@
+﻿@mixin panel-spetial() {
+    opacity: 0;
+
+    &:hover {
+        transition: ease-in 0.2s;
+        opacity: 1;
+    }
+}
+
+.panelSpechial {
+    border-radius: 20px;
+    background-color: rgb(0, 0, 0, 0.2);
+
+    @include panel-spetial()
+}
+
+.panelSpechial-no-clip {
+    @include panel-spetial();
+
+    .panelSpechial-child {
+        padding-right: 0px;
+    }
+}
+
+.panelSpechial-child {
+    width: auto;
+    height: auto;
+    padding-right: 10px;
+}

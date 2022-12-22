@@ -1,0 +1,84 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-SexyWebSite-01D941D8-FC09-401B-BCA5-BF122D39D686</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+	 <Compile Remove="NpmJS\**" />
+	 <Content Remove="NpmJS\**" />
+	 <EmbeddedResource Remove="NpmJS\**" />
+	 <None Remove="NpmJS\build\**" />
+	 <None Remove="NpmJS\config\**" />
+	 <None Remove="NpmJS\node_modules\**" />
+	 <None Remove="NpmJS\public\**" />
+	 <None Remove="NpmJS\scripts\**" />
+	 <None Remove="NpmJS\src\**" />
+	 <TypeScriptCompile Remove="NpmJS\build\**" />
+	 <TypeScriptCompile Remove="NpmJS\config\**" />
+	 <TypeScriptCompile Remove="NpmJS\node_modules\**" />
+	 <TypeScriptCompile Remove="NpmJS\public\**" />
+	 <TypeScriptCompile Remove="NpmJS\scripts\**" />
+	 <TypeScriptCompile Remove="NpmJS\src\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="compilerconfig.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="NpmJS\.gitignore" />
+    <None Remove="NpmJS\index.html" />
+    <None Remove="NpmJS\paktmp.txt" />
+    <None Remove="NpmJS\README.md" />
+    <None Remove="NpmJS\webpack.config.js" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="BuildWebCompiler2022" Version="1.14.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="6.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.TypeScript.MSBuild" Version="4.6.4">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.5" />
+    <PackageReference Include="SixLabors.ImageSharp.Web" Version="2.0.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.0" />
+    <PackageReference Include="System.Linq.Async" Version="6.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Plugins\Plugins.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\css\boosted\" />
+    <Folder Include="wwwroot\images\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="compilerconfig.json" />
+  </ItemGroup>
+
+	<PropertyGroup>
+		<BlazorEnableCompression>false</BlazorEnableCompression>
+	</PropertyGroup>
+
+	<!--
+	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+		<Exec Command="npm install" WorkingDirectory="NpmJS" />
+		<Exec Command="npm run build" WorkingDirectory="NpmJS" />
+	</Target>-->
+</Project>

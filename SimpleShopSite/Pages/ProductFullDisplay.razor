@@ -1,0 +1,123 @@
+﻿@page "/productdisp/{Username}/{ProductId:int}"
+@using SexyWebSite.Data
+
+@inject ImageCreator ImgCtreate
+@inject UserManager<ApplicationUser> UserManager
+@inject AuthenticationStateProvider UserState
+@inject NavigationManager NavManager
+@inject IWebHostEnvironment Environment
+@implements IAsyncDisposable
+
+@if (Environment.IsDevelopment())
+{
+    <link rel="stylesheet" href="css/ProductView.css"/>
+}
+else
+{
+    <link rel="stylesheet" href="css/ProductView.min.css"/>
+}
+@*Main panel*@
+<div class="row justify-content-center">
+    <div class="col-auto carousel slide image-slider-disp" id="@_imageViewId">
+        <div class="carousel-indicators">
+            <button type="button" data-bs-target="#@_imageViewId" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+            @for (int i = 1; i< _product.Images.Count;i++)
+            {
+                <button type="button" data-bs-target="#@_imageViewId" data-bs-slide-to="@i" aria-label="Slide @(i+1)"></button>
+            }
+        </div>
+        <div class="carousel-inner" role="listbox">
+            @foreach (var item in _imagesUrls)
+            {
+                <div class="carousel-item @(_imagesUrls.IndexOf(item) == 0 ? "active" : "")">
+                    <img @key="item" alt="image" class="img-obj" src="@item.ImageUrl"/>
+                </div>
+            }
+        </div>
+        <button class="carousel-control-prev" type="button" data-bs-target="#@_imageViewId" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Previous</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#@_imageViewId" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Next</span>
+        </button>
+    </div>
+    <div class="col-auto">
+        <h1>@_product.Name</h1>
+        <p style="color:gray">@_product.Description</p>
+        <h2>Price:</h2>
+        <h3 style="color:lime">@_product.Price₪</h3>
+        <button type="button" class="btn btn-primary" @onclick="@(async (e) => await OnAddToCartClick(e))">Add to cart</button>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int ProductId { get; set; }
+
+    [Parameter]
+    public string? Username { get; set; }
+
+    private string _imageViewId = "imageslider";
+
+    private Product _product = new();
+
+    private List<ProductDisplay> _imagesUrls = new();
+
+    private bool _afterRender;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usr = UserManager.Users
+            .Include(x => x.Products)
+            .ThenInclude(x => x.Images)
+            .Include(x => x.ProductsOnCart);
+        var user = await usr.SingleAsync(x => x.UserName == this.Username);
+        _product = user.Products.Single(x => x.ProductId == ProductId);
+        if (_afterRender)
+            await InitalizeProduct();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _afterRender = true;
+            await InitalizeProduct();
+        }
+    }
+
+    private async ValueTask OnAddToCartClick(MouseEventArgs e)
+    {
+        var AutoUser = await UserState.GetAuthenticationStateAsync();
+        var user = await UserManager.GetUserAsync(AutoUser.User);
+        user.ProductsOnCart.Add(new()
+        {
+            UserId = _product.UserOwner.Id,
+            ProductId = _product.ProductId,
+            AddedDay = DateTime.Now,
+            UserProductBuy = user
+        }); // הוספה לסל
+        await UserManager.UpdateAsync(user);
+        NavManager.NavigateTo("./", true);
+    }
+
+    private async ValueTask InitalizeProduct()
+    {
+        for (int i = 0; i < _product.Images.Count; i++)
+        {
+            var img = await ProductDisplay.CreateDisplayAsync(_product, ImgCtreate, i);
+            _imagesUrls.Add(img);
+        }
+        base.StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        foreach (var item in _imagesUrls)
+        {
+            await item.DisposeAsync();
+        }
+    }
+}
